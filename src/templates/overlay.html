@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Captions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --font-family: 'Segoe UI', system-ui, sans-serif;
+            --font-size: 28px;
+            --font-weight: 600;
+            --text-color: #ffffff;
+            --bg-color: rgba(0, 0, 0, 0.7);
+            --stroke-color: #000000;
+            --glow-color: rgba(0, 0, 0, 0.5);
+            --glow-size: 4px;
+            --padding: 12px 24px;
+            --border-radius: 8px;
+            --line-height: 1.4;
+            --width: 90%;
+            --max-width: 1200px;
+            --max-height: 200px;
+            --bottom: 10%;
+            --top: 10%;
+            --left: 5%;
+            --right: 5%;
+        }
+        
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: transparent;
+            overflow: hidden;
+            font-family: var(--font-family);
+        }
+        
+        #caption-container {
+            position: absolute;
+            bottom: var(--bottom);
+            left: 50%;
+            transform: translateX(-50%);
+            width: var(--width);
+            max-width: var(--max-width);
+            text-align: center;
+            pointer-events: none;
+        }
+        
+        #caption-text {
+            display: inline-block;
+            padding: var(--padding);
+            background: var(--bg-color);
+            border-radius: var(--border-radius);
+            
+            font-size: var(--font-size);
+            font-weight: var(--font-weight);
+            color: var(--text-color);
+            line-height: var(--line-height);
+            
+            text-shadow: 
+                -1px -1px 0 var(--stroke-color),
+                1px -1px 0 var(--stroke-color),
+                -1px 1px 0 var(--stroke-color),
+                1px 1px 0 var(--stroke-color),
+                0 0 var(--glow-size) var(--glow-color);
+            
+            max-height: var(--max-height);
+            overflow: hidden;
+            
+            /* Opacity transition for fade effects */
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        
+        #caption-text.hidden {
+            opacity: 0;
+        }
+        
+        #caption-text:empty::before {
+            content: attr(data-placeholder);
+            opacity: 0.3;
+        }
+        
+        #caption-text.listening {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* Position variants */
+        .position-top #caption-container {
+            top: var(--top);
+            bottom: auto;
+        }
+        
+        .position-center #caption-container {
+            top: 50%;
+            bottom: auto;
+            transform: translate(-50%, -50%);
+        }
+        
+        .position-left #caption-container {
+            left: var(--left);
+            transform: none;
+            text-align: left;
+        }
+        
+        .position-right #caption-container {
+            left: auto;
+            right: var(--right);
+            transform: none;
+            text-align: right;
+        }
+        
+        /* Scrollbar for long text */
+        #caption-text {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        #caption-text::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Status indicator */
+        #status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        #status-indicator.connected {
+            background: #44ff44;
+            opacity: 1;
+        }
+        
+        #status-indicator.disconnected {
+            background: #ff4444;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="status-indicator"></div>
+    <div id="caption-container">
+        <div id="caption-text" data-placeholder="Waiting for captions..."></div>
+    </div>
+    
+    <script>
+        // Parse URL parameters and apply them as CSS variables
+        const params = new URLSearchParams(window.location.search);
+        const root = document.documentElement;
+        
+        // Apply CSS variables from URL params
+        const cssVars = [
+            'font-family', 'font-size', 'font-weight', 'text-color',
+            'bg-color', 'stroke-color', 'glow-color', 'glow-size',
+            'padding', 'border-radius', 'line-height',
+            'width', 'max-width', 'max-height',
+            'bottom', 'top', 'left', 'right'
+        ];
+        
+        cssVars.forEach(v => {
+            if (params.has(v)) {
+                root.style.setProperty(`--${v}`, params.get(v));
+            }
+        });
+        
+        // Apply position class
+        const position = params.get('position') || 'bottom';
+        document.body.classList.add(`position-${position}`);
+        
+        // WebSocket connection
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+        
+        let ws = null;
+        let reconnectInterval = 1000;
+        let reconnectTimer = null;
+        let captionText = document.getElementById('caption-text');
+        let statusIndicator = document.getElementById('status-indicator');
+        
+        // Max lines setting
+        const maxLines = parseInt(params.get('max-lines')) || 3;
+        
+        function connect() {
+            if (ws) return;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('Connected to caption server');
+                statusIndicator.className = 'connected';
+                reconnectInterval = 1000;
+                
+                // Start keepalive ping
+                setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send('ping');
+                    }
+                }, 30000);
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from caption server');
+                statusIndicator.className = 'disconnected';
+                ws = null;
+                
+                // Reconnect with exponential backoff
+                reconnectInterval = Math.min(reconnectInterval * 1.5, 30000);
+                reconnectTimer = setTimeout(connect, reconnectInterval);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'caption':
+                    updateCaption(data.text);
+                    // Restore opacity if it was fading
+                    if (data.cancel_fade) {
+                        cancelFadeOut();
+                    }
+                    break;
+                case 'clear':
+                    captionText.textContent = '';
+                    captionText.classList.remove('hidden');
+                    break;
+                case 'fade_out':
+                    startFadeOut(data.duration_ms || 500);
+                    break;
+                case 'status':
+                    if (data.is_listening) {
+                        captionText.classList.add('listening');
+                    } else {
+                        captionText.classList.remove('listening');
+                    }
+                    break;
+                case 'pong':
+                    // Keepalive response
+                    break;
+            }
+        }
+        
+        function updateCaption(text) {
+            captionText.textContent = text;
+            
+            // Limit to max lines by keeping only the last N lines
+            if (maxLines > 0) {
+                const lines = text.split('\n');
+                if (lines.length > maxLines) {
+                    captionText.textContent = lines.slice(-maxLines).join('\n');
+                }
+            }
+            
+            // Auto-scroll to bottom
+            captionText.scrollTop = captionText.scrollHeight;
+        }
+        
+        let fadeTimeout = null;
+        
+        function startFadeOut(durationMs) {
+            // Cancel any existing fade
+            cancelFadeOut();
+            
+            // Apply the fade out transition
+            captionText.style.transition = `opacity ${durationMs}ms ease`;
+            
+            // Force reflow to ensure transition applies
+            void captionText.offsetHeight;
+            
+            // Start the fade
+            captionText.style.opacity = '0';
+            
+            // After fade completes, hide the text completely
+            fadeTimeout = setTimeout(() => {
+                captionText.classList.add('hidden');
+                // Reset opacity for next time
+                captionText.style.opacity = '1';
+                captionText.style.transition = 'opacity 0.3s ease';
+            }, durationMs);
+        }
+        
+        function cancelFadeOut() {
+            if (fadeTimeout) {
+                clearTimeout(fadeTimeout);
+                fadeTimeout = null;
+            }
+            // Restore full visibility immediately
+            captionText.classList.remove('hidden');
+            captionText.style.opacity = '1';
+            captionText.style.transition = 'opacity 0.3s ease';
+        }
+        
+        // Start connection
+        connect();
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+            }
+            if (fadeTimeout) {
+                clearTimeout(fadeTimeout);
+            }
+            if (ws) {
+                ws.close();
+            }
+        });
+    </script>
+</body>
+</html>
