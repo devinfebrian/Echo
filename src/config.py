@@ -8,7 +8,7 @@ from typing import Optional
 class AutoClearConfig:
     """Configuration for auto-clear behavior."""
     enabled: bool = True
-    clear_after_seconds: float = 2.0
+    clear_after_seconds: float = 1.0
     fade_out_duration_ms: int = 500
     min_display_seconds: float = 2.0
     smart_sentence_delay: bool = True  # Wait longer after sentences end
