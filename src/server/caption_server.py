@@ -31,6 +31,7 @@ class CaptionState:
         self._clear_timer: Optional[asyncio.Task] = None
         self._text_last_updated: float = 0
         self._fade_out_timer: Optional[asyncio.Task] = None
+        self._last_sent_text: str = ""  # Track what was last broadcast for delta calculation
     
     async def add_connection(self, websocket: WebSocket):
         async with self._lock:
@@ -99,22 +100,36 @@ class CaptionState:
             self._fade_out_timer.cancel()
     
     async def update_caption(self, text: str, is_final: bool = False):
-        """Update current caption and broadcast to all clients."""
+        """Update current caption and broadcast delta to all clients."""
         import time
         
         # Cancel any pending clear timer
         self._cancel_timers()
         
+        # Calculate delta (only the new text)
+        delta = ""
+        is_delta = False
+        if text.startswith(self._last_sent_text):
+            # New text extends previous text - send only the delta
+            delta = text[len(self._last_sent_text):]
+            is_delta = len(delta) > 0
+        else:
+            # Text changed unexpectedly (backspace, correction, etc.) - send full text
+            delta = text
+            is_delta = False
+        
         # Update state
         self.current_text = text
         self._text_last_updated = time.time()
+        self._last_sent_text = text
         
-        # Broadcast to clients (cancel fade if it was active)
+        # Broadcast delta to clients
         await self.broadcast({
             "type": "caption",
-            "text": text,
+            "text": delta,
+            "is_delta": is_delta,
             "is_final": is_final,
-            "cancel_fade": True,  # Client should restore opacity
+            "cancel_fade": True,
         })
         
         # Schedule auto-clear if enabled
@@ -125,6 +140,7 @@ class CaptionState:
         """Immediately clear the caption."""
         self._cancel_timers()
         self.current_text = ""
+        self._last_sent_text = ""  # Reset delta tracking
         await self.broadcast({"type": "clear"})
     
     async def set_listening(self, is_listening: bool):
@@ -188,10 +204,11 @@ def create_app() -> FastAPI:
         await websocket.accept()
         await caption_state.add_connection(websocket)
         
-        # Send current state to new client
+        # Send current state to new client (full text, not delta)
         await websocket.send_json({
             "type": "caption",
             "text": caption_state.current_text,
+            "is_delta": False,
             "is_final": True,
         })
         await websocket.send_json({

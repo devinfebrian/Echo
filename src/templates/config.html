@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caption Configuration</title>
+    <title>Live Caption Studio</title>
     <style>
         * {
             margin: 0;
@@ -11,351 +11,705 @@
             box-sizing: border-box;
         }
         
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #1a1a2e;
-            color: #eee;
-            padding: 2rem;
-            line-height: 1.6;
+        :root {
+            --primary: #9146ff;
+            --primary-hover: #772ce8;
+            --bg-dark: #0e0e10;
+            --bg-card: #18181b;
+            --bg-input: #1f1f23;
+            --border: #2d2d35;
+            --text: #efeff1;
+            --text-muted: #adadb8;
+            --success: #00f593;
+            --warning: #ffd600;
         }
         
-        h1 {
-            margin-bottom: 1rem;
-            color: #fff;
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .logo-text span {
+            color: var(--primary);
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 2rem;
         }
         
-        .preview-section {
-            background: #16213e;
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+        }
+        
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Preview Section */
+        .preview-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        
+        .preview-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .preview-header h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .demo-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        .toggle {
+            width: 44px;
+            height: 24px;
+            background: var(--border);
             border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            min-height: 200px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .toggle.active {
+            background: var(--primary);
+        }
+        
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+        
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+        
+        .preview-area {
+            height: 280px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            position: relative;
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            position: relative;
+            padding: 2rem;
             overflow: hidden;
-            resize: horizontal;
         }
         
-        .preview-section::before {
-            content: 'Preview (resize me)';
+        .preview-area::before {
+            content: '';
             position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 12px;
-            text-transform: uppercase;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
             opacity: 0.5;
         }
         
         #preview-caption {
-            padding: 12px 24px;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 8px;
-            font-size: 28px;
-            font-weight: 600;
-            color: #fff;
-            text-shadow: 
-                -1px -1px 0 #000, 1px -1px 0 #000,
-                -1px 1px 0 #000, 1px 1px 0 #000,
-                0 0 4px rgba(0,0,0,0.5);
+            position: relative;
+            z-index: 1;
             max-width: 100%;
             word-wrap: break-word;
+            transition: opacity 0.3s ease;
         }
         
-        .controls {
-            background: #16213e;
-            border-radius: 12px;
-            padding: 2rem;
+        .preview-controls {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .preview-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .preview-btn:hover {
+            background: var(--border);
+        }
+        
+        .preview-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        /* Presets */
+        .presets-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .presets-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+        
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+        
+        .preset-btn {
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .preset-btn:hover {
+            border-color: var(--primary);
+        }
+        
+        .preset-btn.active {
+            background: rgba(145, 70, 255, 0.1);
+            border-color: var(--primary);
+        }
+        
+        /* Controls */
+        .controls-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+        }
+        
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .control-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
         }
         
         label {
             display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
             margin-bottom: 0.5rem;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.8;
+            color: var(--text-muted);
         }
         
         input, select {
             width: 100%;
-            padding: 10px 14px;
-            border: 1px solid #0f3460;
-            border-radius: 6px;
-            background: #0f3460;
-            color: #fff;
-            font-size: 16px;
+            padding: 0.625rem 0.875rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9375rem;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
         }
         
         input[type="color"] {
-            height: 44px;
+            height: 42px;
             padding: 4px;
             cursor: pointer;
         }
         
         input[type="range"] {
             padding: 0;
+            height: 6px;
+            -webkit-appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .range-row input[type="range"] {
+            flex: 1;
         }
         
         .range-value {
-            display: inline-block;
-            margin-left: 10px;
-            font-size: 14px;
-            opacity: 0.8;
+            min-width: 50px;
+            text-align: right;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
         }
         
         .row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
+        }
+        
+        /* URL Box */
+        .url-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
         }
         
         .url-box {
-            background: #0f3460;
-            padding: 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            margin-top: 2rem;
-            word-break: break-all;
+            padding: 1rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
         }
         
-        .url-box code {
-            font-family: 'Consolas', monospace;
-            font-size: 13px;
-            color: #e94560;
-            display: block;
-            margin: 10px 0;
-            padding: 10px;
-            background: #1a1a2e;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
-        
-        .url-box a {
-            color: #4ade80;
-            text-decoration: none;
-        }
-        
-        .url-box a:hover {
-            text-decoration: underline;
-        }
-        
-        button {
-            background: #e94560;
-            color: #fff;
+        .url-input {
+            flex: 1;
+            background: transparent;
             border: none;
-            padding: 12px 24px;
+            color: var(--text);
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.8125rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .url-input:focus {
+            outline: none;
+        }
+        
+        .copy-btn {
+            padding: 0.5rem 1rem;
+            background: var(--primary);
+            border: none;
             border-radius: 6px;
-            font-size: 16px;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            margin-top: 1rem;
+            transition: background 0.2s;
+            white-space: nowrap;
         }
         
-        button:hover {
-            background: #ff6b6b;
+        .copy-btn:hover {
+            background: var(--primary-hover);
         }
         
-        .info {
-            background: #0f3460;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-            font-size: 14px;
+        .copy-btn.copied {
+            background: var(--success);
+            color: var(--bg-dark);
         }
         
-        .info code {
-            background: #1a1a2e;
+        .url-help {
+            margin-top: 0.75rem;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        
+        .url-help code {
+            background: var(--bg-input);
             padding: 2px 6px;
             border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
         }
         
-        .char-counter {
-            background: #1a1a2e;
-            padding: 1rem;
+        /* Info box */
+        .info-box {
+            background: rgba(0, 245, 147, 0.1);
+            border: 1px solid rgba(0, 245, 147, 0.2);
             border-radius: 8px;
-            margin-top: 1rem;
-            font-size: 13px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .info-box h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .info-box p {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        
+        /* Stats */
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
+            margin-bottom: 1.5rem;
         }
         
-        .char-counter div {
+        .stat-card {
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 1rem;
             text-align: center;
         }
         
-        .char-counter .number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #4ade80;
-            display: block;
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-variant-numeric: tabular-nums;
         }
         
-        .char-counter .label {
-            opacity: 0.7;
-            font-size: 11px;
+        .stat-label {
+            font-size: 0.6875rem;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        
+        /* Hidden */
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">CC</div>
+            <div class="logo-text">Live <span>Caption</span></div>
+        </div>
+        <div class="status">
+            <div class="status-dot"></div>
+            <span>Server Active</span>
+        </div>
+    </header>
+    
     <div class="container">
-        <h1>Live Caption Configuration</h1>
-        
-        <div class="info">
-            <strong>OBS Setup:</strong> Add a Browser Source with URL 
-            <code id="obs-url-short">http://localhost:8080</code> and set dimensions to your canvas size 
-            (e.g., 1920x1080). Enable "Custom CSS" if needed.
-        </div>
-        
-        <div class="preview-section" id="preview-container">
-            <div id="preview-caption">This is how your captions will look with the current settings applied!</div>
-        </div>
-        
-        <div class="char-counter">
-            <div>
-                <span class="number" id="chars-per-line">65</span>
-                <span class="label">Chars/Line at 1920px</span>
-            </div>
-            <div>
-                <span class="number" id="total-chars">195</span>
-                <span class="label">Total (3 lines)</span>
-            </div>
-            <div>
-                <span class="number" id="line-count">3</span>
-                <span class="label">Max Lines</span>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <div class="row">
-                <div class="control-group">
-                    <label>Font Family</label>
-                    <select id="font-family">
-                        <option value="Segoe UI">Segoe UI (Default)</option>
-                        <option value="Arial">Arial</option>
-                        <option value="Helvetica">Helvetica</option>
-                        <option value="Comic Sans MS">Comic Sans</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                        <option value="Courier New">Courier New</option>
-                        <option value="Impact">Impact</option>
-                        <option value="Georgia">Georgia</option>
-                        <option value="Verdana">Verdana</option>
-                    </select>
+        <div class="main-grid">
+            <div class="left-column">
+                <!-- Preview -->
+                <div class="preview-card">
+                    <div class="preview-header">
+                        <h2>Preview</h2>
+                        <div class="demo-toggle">
+                            <span>Live Demo</span>
+                            <div class="toggle" id="demoToggle"></div>
+                        </div>
+                    </div>
+                    <div class="preview-area">
+                        <div id="preview-caption">This is how your captions will look!</div>
+                    </div>
+                    <div class="preview-controls">
+                        <button class="preview-btn" onclick="setPreviewText('Hello chat, welcome to the stream!')">Welcome</button>
+                        <button class="preview-btn" onclick="setPreviewText('Thanks for the follow!')">Follow</button>
+                        <button class="preview-btn" onclick="setPreviewText('Let\\'s check out this new game together')">Long Text</button>
+                        <button class="preview-btn active" onclick="setPreviewText('')">Clear</button>
+                    </div>
                 </div>
                 
-                <div class="control-group">
-                    <label>Font Size <span class="range-value" id="font-size-val">28px</span></label>
-                    <input type="range" id="font-size" min="12" max="72" value="28">
-                </div>
-                
-                <div class="control-group">
-                    <label>Font Weight</label>
-                    <select id="font-weight">
-                        <option value="400">Normal (400)</option>
-                        <option value="600" selected>Semi-Bold (600)</option>
-                        <option value="700">Bold (700)</option>
-                        <option value="900">Black (900)</option>
-                    </select>
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-chars">65</div>
+                        <div class="stat-label">Chars/Line</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-total">195</div>
+                        <div class="stat-label">Max Chars</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lines">3</div>
+                        <div class="stat-label">Lines</div>
+                    </div>
                 </div>
             </div>
             
-            <div class="row">
-                <div class="control-group">
-                    <label>Text Color</label>
-                    <input type="color" id="text-color" value="#ffffff">
+            <div class="right-column">
+                <div class="controls-card">
+                    <!-- Info -->
+                    <div class="info-box">
+                        <h3>OBS Setup</h3>
+                        <p>Add a Browser Source with the URL below. Set width to 1920 and height to 1080.</p>
+                    </div>
+                    
+                    <!-- Presets -->
+                    <div class="presets-section">
+                        <div class="presets-label">Quick Presets</div>
+                        <div class="presets-grid">
+                            <button class="preset-btn" onclick="applyPreset('twitch')">Twitch Style</button>
+                            <button class="preset-btn" onclick="applyPreset('youtube')">YouTube Live</button>
+                            <button class="preset-btn" onclick="applyPreset('minimal')">Minimal</button>
+                            <button class="preset-btn" onclick="applyPreset('retro')">Retro Gaming</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Controls -->
+                    <div class="section-title">Typography</div>
+                    <div class="control-group">
+                        <label>Font Family</label>
+                        <select id="font-family">
+                            <option value="Segoe UI">Segoe UI</option>
+                            <option value="Inter">Inter</option>
+                            <option value="Arial">Arial</option>
+                            <option value="Roboto">Roboto</option>
+                            <option value="Open Sans">Open Sans</option>
+                            <option value="Impact">Impact</option>
+                            <option value="Bebas Neue">Bebas Neue</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="control-group">
+                            <label>Size</label>
+                            <div class="range-row">
+                                <input type="range" id="font-size" min="12" max="72" value="28">
+                                <span class="range-value" id="font-size-val">28px</span>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>Weight</label>
+                            <select id="font-weight">
+                                <option value="400">Normal</option>
+                                <option value="600" selected>Semi-Bold</option>
+                                <option value="700">Bold</option>
+                                <option value="900">Black</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="section-title" style="margin-top: 1.5rem;">Colors</div>
+                    <div class="row">
+                        <div class="control-group">
+                            <label>Text Color</label>
+                            <input type="color" id="text-color" value="#ffffff">
+                        </div>
+                        <div class="control-group">
+                            <label>Background</label>
+                            <input type="color" id="bg-color" value="#000000">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Background Opacity</label>
+                        <div class="range-row">
+                            <input type="range" id="bg-opacity" min="0" max="100" value="70">
+                            <span class="range-value" id="bg-opacity-val">70%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="section-title" style="margin-top: 1.5rem;">Effects</div>
+                    <div class="row">
+                        <div class="control-group">
+                            <label>Stroke Color</label>
+                            <input type="color" id="stroke-color" value="#000000">
+                        </div>
+                        <div class="control-group">
+                            <label>Glow Color</label>
+                            <input type="color" id="glow-color" value="#000000">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Glow Size</label>
+                        <div class="range-row">
+                            <input type="range" id="glow-size" min="0" max="20" value="4">
+                            <span class="range-value" id="glow-size-val">4px</span>
+                        </div>
+                    </div>
+                    
+                    <div class="section-title" style="margin-top: 1.5rem;">Layout</div>
+                    <div class="row">
+                        <div class="control-group">
+                            <label>Position</label>
+                            <select id="position">
+                                <option value="bottom">Bottom</option>
+                                <option value="top">Top</option>
+                                <option value="center">Center</option>
+                                <option value="left">Left</option>
+                                <option value="right">Right</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Max Lines</label>
+                            <input type="number" id="max-lines" value="3" min="1" max="10">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="control-group">
+                            <label>Padding H</label>
+                            <div class="range-row">
+                                <input type="range" id="h-padding" min="0" max="100" value="24">
+                                <span class="range-value" id="h-padding-val">24px</span>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>Padding V</label>
+                            <div class="range-row">
+                                <input type="range" id="v-padding" min="0" max="50" value="12">
+                                <span class="range-value" id="v-padding-val">12px</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Border Radius</label>
+                        <div class="range-row">
+                            <input type="range" id="border-radius" min="0" max="50" value="8">
+                            <span class="range-value" id="border-radius-val">8px</span>
+                        </div>
+                    </div>
+                    
+                    <!-- URL -->
+                    <div class="url-section">
+                        <div class="url-box">
+                            <input type="text" class="url-input" id="obs-url" value="http://localhost:8080" readonly>
+                            <button class="copy-btn" id="copyBtn" onclick="copyUrl()">Copy URL</button>
+                        </div>
+                        <div class="url-help">
+                            In OBS: Add Source → Browser → Paste URL → Set <code>1920x1080</code>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="control-group">
-                    <label>Background Color</label>
-                    <input type="color" id="bg-color" value="#000000">
-                </div>
-                
-                <div class="control-group">
-                    <label>Background Opacity <span class="range-value" id="bg-opacity-val">70%</span></label>
-                    <input type="range" id="bg-opacity" min="0" max="100" value="70">
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="control-group">
-                    <label>Stroke Color</label>
-                    <input type="color" id="stroke-color" value="#000000">
-                </div>
-                
-                <div class="control-group">
-                    <label>Glow Color</label>
-                    <input type="color" id="glow-color" value="#000000">
-                </div>
-                
-                <div class="control-group">
-                    <label>Glow Size <span class="range-value" id="glow-size-val">4px</span></label>
-                    <input type="range" id="glow-size" min="0" max="20" value="4">
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="control-group">
-                    <label>Position</label>
-                    <select id="position">
-                        <option value="bottom">Bottom Center</option>
-                        <option value="top">Top Center</option>
-                        <option value="center">Center</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
-                    </select>
-                </div>
-                
-                <div class="control-group">
-                    <label>Max Lines</label>
-                    <input type="number" id="max-lines" value="3" min="1" max="10">
-                </div>
-                
-                <div class="control-group">
-                    <label>Border Radius <span class="range-value" id="border-radius-val">8px</span></label>
-                    <input type="range" id="border-radius" min="0" max="50" value="8">
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="control-group">
-                    <label>Horizontal Padding <span class="range-value" id="h-padding-val">24px</span></label>
-                    <input type="range" id="h-padding" min="0" max="100" value="24">
-                </div>
-                
-                <div class="control-group">
-                    <label>Vertical Padding <span class="range-value" id="v-padding-val">12px</span></label>
-                    <input type="range" id="v-padding" min="0" max="50" value="12">
-                </div>
-                
-                <div class="control-group">
-                    <label>Line Height <span class="range-value" id="line-height-val">1.4</span></label>
-                    <input type="range" id="line-height" min="1" max="2" step="0.1" value="1.4">
-                </div>
-            </div>
-            
-            <div class="url-box">
-                <strong>Your OBS Browser Source URL:</strong><br>
-                <a id="obs-url" href="http://localhost:8080" target="_blank">http://localhost:8080</a>
-                <button onclick="copyUrl()">Copy URL</button>
             </div>
         </div>
     </div>
     
     <script>
         const preview = document.getElementById('preview-caption');
-        const previewContainer = document.getElementById('preview-container');
         const obsUrl = document.getElementById('obs-url');
-        const obsUrlShort = document.getElementById('obs-url-short');
+        const demoTexts = [
+            "Hey everyone, welcome back!",
+            "Thanks so much for the follow!",
+            "Let me explain the strategy here...",
+            "Did you see that clutch play?",
+            "Chat, what do you think we should do next?"
+        ];
+        let demoInterval = null;
+        let demoIndex = 0;
         
         function hexToRgba(hex, alpha) {
             const r = parseInt(hex.slice(1, 3), 16);
@@ -371,15 +725,15 @@
             return Math.floor((width - padding) / avgCharWidth);
         }
         
-        function updateCharCounter() {
+        function updateStats() {
             const fontSize = parseInt(document.getElementById('font-size').value);
             const maxLines = parseInt(document.getElementById('max-lines').value);
             const charsPerLine = estimateCharsPerLine(fontSize);
             const totalChars = charsPerLine * maxLines;
             
-            document.getElementById('chars-per-line').textContent = charsPerLine;
-            document.getElementById('total-chars').textContent = totalChars;
-            document.getElementById('line-count').textContent = maxLines;
+            document.getElementById('stat-chars').textContent = charsPerLine;
+            document.getElementById('stat-total').textContent = totalChars;
+            document.getElementById('stat-lines').textContent = maxLines;
         }
         
         function updatePreview() {
@@ -395,7 +749,6 @@
             const borderRadius = document.getElementById('border-radius').value + 'px';
             const hPadding = document.getElementById('h-padding').value + 'px';
             const vPadding = document.getElementById('v-padding').value + 'px';
-            const lineHeight = document.getElementById('line-height').value;
             
             preview.style.fontFamily = `"${fontFamily}", sans-serif`;
             preview.style.fontSize = fontSize;
@@ -404,67 +757,134 @@
             preview.style.background = hexToRgba(bgColor, bgOpacity);
             preview.style.borderRadius = borderRadius;
             preview.style.padding = `${vPadding} ${hPadding}`;
-            preview.style.lineHeight = lineHeight;
             preview.style.textShadow = `
                 -1px -1px 0 ${strokeColor}, 1px -1px 0 ${strokeColor},
                 -1px 1px 0 ${strokeColor}, 1px 1px 0 ${strokeColor},
                 0 0 ${glowSize} ${hexToRgba(glowColor, 0.5)}
             `;
             
-            updateCharCounter();
+            // Update position
+            const position = document.getElementById('position').value;
+            const previewArea = document.querySelector('.preview-area');
+            previewArea.style.alignItems = position === 'top' ? 'flex-start' : 
+                                          position === 'center' ? 'center' : 'flex-end';
+            previewArea.style.justifyContent = position === 'left' ? 'flex-start' :
+                                              position === 'right' ? 'flex-end' : 'center';
+            preview.style.textAlign = position === 'left' ? 'left' :
+                                     position === 'right' ? 'right' : 'center';
+            
+            updateStats();
             updateUrl();
         }
         
         function updateUrl() {
             const params = new URLSearchParams();
             
-            const fontFamily = document.getElementById('font-family').value;
-            const fontSize = document.getElementById('font-size').value;
-            const fontWeight = document.getElementById('font-weight').value;
-            const textColor = document.getElementById('text-color').value;
-            const bgColor = document.getElementById('bg-color').value;
-            const bgOpacity = document.getElementById('bg-opacity').value;
-            const strokeColor = document.getElementById('stroke-color').value;
-            const glowColor = document.getElementById('glow-color').value;
-            const glowSize = document.getElementById('glow-size').value;
-            const borderRadius = document.getElementById('border-radius').value;
-            const hPadding = document.getElementById('h-padding').value;
-            const vPadding = document.getElementById('v-padding').value;
-            const lineHeight = document.getElementById('line-height').value;
-            const position = document.getElementById('position').value;
-            const maxLines = document.getElementById('max-lines').value;
+            params.set('font', document.getElementById('font-family').value);
+            params.set('size', document.getElementById('font-size').value);
+            params.set('weight', document.getElementById('font-weight').value);
+            params.set('color', document.getElementById('text-color').value);
+            params.set('bg', document.getElementById('bg-color').value);
+            params.set('bg-op', document.getElementById('bg-opacity').value);
+            params.set('stroke', document.getElementById('stroke-color').value);
+            params.set('glow', document.getElementById('glow-color').value);
+            params.set('glow-size', document.getElementById('glow-size').value);
+            params.set('radius', document.getElementById('border-radius').value);
+            params.set('hpad', document.getElementById('h-padding').value);
+            params.set('vpad', document.getElementById('v-padding').value);
+            params.set('pos', document.getElementById('position').value);
+            params.set('lines', document.getElementById('max-lines').value);
             
-            // Build params - use simple values, let overlay build the CSS
-            params.set('font', fontFamily);
-            params.set('size', fontSize);
-            params.set('weight', fontWeight);
-            params.set('color', textColor);
-            params.set('bg', bgColor);
-            params.set('bg-op', bgOpacity);
-            params.set('stroke', strokeColor);
-            params.set('glow', glowColor);
-            params.set('glow-size', glowSize);
-            params.set('radius', borderRadius);
-            params.set('hpad', hPadding);
-            params.set('vpad', vPadding);
-            params.set('lh', lineHeight);
-            params.set('pos', position);
-            params.set('lines', maxLines);
-            
-            const url = `http://localhost:8080/?${params.toString()}`;
-            obsUrl.textContent = url;
-            obsUrl.href = url;
-            obsUrlShort.textContent = url;
+            obsUrl.value = `http://localhost:8080/?${params.toString()}`;
+        }
+        
+        function setPreviewText(text) {
+            preview.textContent = text || 'Your captions will appear here...';
+            document.querySelectorAll('.preview-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
         }
         
         function copyUrl() {
-            navigator.clipboard.writeText(obsUrl.textContent);
-            const btn = document.querySelector('.url-box button');
+            navigator.clipboard.writeText(obsUrl.value);
+            const btn = document.getElementById('copyBtn');
             btn.textContent = 'Copied!';
-            setTimeout(() => btn.textContent = 'Copy URL', 2000);
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = 'Copy URL';
+                btn.classList.remove('copied');
+            }, 2000);
         }
         
-        // Update value displays for range inputs
+        function applyPreset(name) {
+            const presets = {
+                twitch: {
+                    font: 'Inter', size: 32, weight: '700', color: '#ffffff',
+                    bg: '#000000', bgOp: 80, stroke: '#000000', glow: '#9146ff', glowSize: 8,
+                    radius: 12, hpad: 32, vpad: 16, pos: 'bottom', lines: 2
+                },
+                youtube: {
+                    font: 'Roboto', size: 28, weight: '400', color: '#ffffff',
+                    bg: '#000000', bgOp: 70, stroke: '#000000', glow: '#ff0000', glowSize: 0,
+                    radius: 8, hpad: 24, vpad: 12, pos: 'bottom', lines: 3
+                },
+                minimal: {
+                    font: 'Inter', size: 24, weight: '500', color: '#ffffff',
+                    bg: '#000000', bgOp: 50, stroke: '#000000', glow: '#000000', glowSize: 0,
+                    radius: 4, hpad: 16, vpad: 8, pos: 'bottom', lines: 2
+                },
+                retro: {
+                    font: 'Impact', size: 36, weight: '400', color: '#00ff00',
+                    bg: '#000000', bgOp: 90, stroke: '#003300', glow: '#00ff00', glowSize: 12,
+                    radius: 0, hpad: 20, vpad: 10, pos: 'bottom', lines: 2
+                }
+            };
+            
+            const p = presets[name];
+            if (!p) return;
+            
+            document.getElementById('font-family').value = p.font;
+            document.getElementById('font-size').value = p.size;
+            document.getElementById('font-weight').value = p.weight;
+            document.getElementById('text-color').value = p.color;
+            document.getElementById('bg-color').value = p.bg;
+            document.getElementById('bg-opacity').value = p.bgOp;
+            document.getElementById('stroke-color').value = p.stroke;
+            document.getElementById('glow-color').value = p.glow;
+            document.getElementById('glow-size').value = p.glowSize;
+            document.getElementById('border-radius').value = p.radius;
+            document.getElementById('h-padding').value = p.hpad;
+            document.getElementById('v-padding').value = p.vpad;
+            document.getElementById('position').value = p.pos;
+            document.getElementById('max-lines').value = p.lines;
+            
+            // Update range value displays
+            document.getElementById('font-size-val').textContent = p.size + 'px';
+            document.getElementById('bg-opacity-val').textContent = p.bgOp + '%';
+            document.getElementById('glow-size-val').textContent = p.glowSize + 'px';
+            document.getElementById('border-radius-val').textContent = p.radius + 'px';
+            document.getElementById('h-padding-val').textContent = p.hpad + 'px';
+            document.getElementById('v-padding-val').textContent = p.vpad + 'px';
+            
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            updatePreview();
+        }
+        
+        // Demo mode
+        document.getElementById('demoToggle').addEventListener('click', function() {
+            this.classList.toggle('active');
+            if (this.classList.contains('active')) {
+                demoInterval = setInterval(() => {
+                    preview.textContent = demoTexts[demoIndex];
+                    demoIndex = (demoIndex + 1) % demoTexts.length;
+                }, 3000);
+            } else {
+                clearInterval(demoInterval);
+            }
+        });
+        
+        // Event listeners for all inputs
         document.querySelectorAll('input[type="range"]').forEach(input => {
             input.addEventListener('input', (e) => {
                 const valId = e.target.id + '-val';
@@ -472,16 +892,13 @@
                 if (valEl) {
                     let suffix = 'px';
                     if (e.target.id === 'bg-opacity') suffix = '%';
-                    if (e.target.id === 'line-height') suffix = '';
                     valEl.textContent = e.target.value + suffix;
                 }
                 updatePreview();
             });
         });
         
-        // Update on any change
-        document.querySelectorAll('input, select').forEach(el => {
-            el.addEventListener('input', updatePreview);
+        document.querySelectorAll('input:not([type="range"]), select').forEach(el => {
             el.addEventListener('change', updatePreview);
         });
         

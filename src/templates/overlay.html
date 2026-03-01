@@ -250,6 +250,7 @@
         let reconnectTimer = null;
         let captionText = document.getElementById('caption-text');
         let statusIndicator = document.getElementById('status-indicator');
+        let currentCaptionText = '';  // Track current text for delta handling
 
         function connect() {
             if (ws) return;
@@ -289,12 +290,20 @@
         function handleMessage(data) {
             switch (data.type) {
                 case 'caption':
-                    updateCaption(data.text);
+                    // Handle delta updates: if is_delta is true, append to existing text
+                    if (data.is_delta) {
+                        currentCaptionText += data.text;
+                    } else {
+                        // Full text replacement (for corrections or initial load)
+                        currentCaptionText = data.text;
+                    }
+                    updateCaption(currentCaptionText);
                     if (data.cancel_fade) {
                         cancelFadeOut();
                     }
                     break;
                 case 'clear':
+                    currentCaptionText = '';
                     captionText.textContent = '';
                     captionText.classList.remove('hidden');
                     break;
@@ -314,15 +323,19 @@
         }
 
         function updateCaption(text) {
-            captionText.textContent = text;
+            let displayText = text;
 
+            // Limit to max lines by keeping only the last N lines
             if (maxLines > 0) {
                 const lines = text.split('\n');
                 if (lines.length > maxLines) {
-                    captionText.textContent = lines.slice(-maxLines).join('\n');
+                    displayText = lines.slice(-maxLines).join('\n');
+                    // Update tracked text to match what's displayed
+                    currentCaptionText = displayText;
                 }
             }
 
+            captionText.textContent = displayText;
             captionText.scrollTop = captionText.scrollHeight;
         }
 
