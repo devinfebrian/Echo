@@ -58,16 +58,8 @@ class CaptionState:
                 self.connections -= disconnected
     
     def _calculate_clear_delay(self) -> float:
-        """Calculate how long to wait before clearing based on text content."""
-        delay = self.auto_clear_config.clear_after_seconds
-        
-        # Smart sentence detection: add extra delay if text ends with punctuation
-        if self.auto_clear_config.smart_sentence_delay and self.current_text:
-            stripped = self.current_text.rstrip()
-            if stripped and stripped[-1] in '.!?':
-                delay += self.auto_clear_config.sentence_extra_delay
-        
-        return delay
+        """Calculate how long to wait before clearing."""
+        return self.auto_clear_config.clear_after_seconds
     
     async def _schedule_clear(self):
         """Schedule the caption clear after timeout."""
@@ -255,8 +247,6 @@ def create_app() -> FastAPI:
             "clear_after_seconds": config.clear_after_seconds,
             "fade_out_duration_ms": config.fade_out_duration_ms,
             "min_display_seconds": config.min_display_seconds,
-            "smart_sentence_delay": config.smart_sentence_delay,
-            "sentence_extra_delay": config.sentence_extra_delay,
         }
     
     @app.post("/api/config/auto-clear")
@@ -265,8 +255,6 @@ def create_app() -> FastAPI:
         clear_after_seconds: Optional[float] = None,
         fade_out_duration_ms: Optional[int] = None,
         min_display_seconds: Optional[float] = None,
-        smart_sentence_delay: Optional[bool] = None,
-        sentence_extra_delay: Optional[float] = None,
     ):
         """Update auto-clear configuration."""
         config = caption_state.auto_clear_config
@@ -279,10 +267,6 @@ def create_app() -> FastAPI:
             config.fade_out_duration_ms = max(0, fade_out_duration_ms)
         if min_display_seconds is not None:
             config.min_display_seconds = max(0.5, min_display_seconds)
-        if smart_sentence_delay is not None:
-            config.smart_sentence_delay = smart_sentence_delay
-        if sentence_extra_delay is not None:
-            config.sentence_extra_delay = max(0, sentence_extra_delay)
         
         return {"status": "ok", "config": await get_auto_clear_config()}
     

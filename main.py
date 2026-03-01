@@ -5,7 +5,7 @@ Using Voxtral Mini Transcribe Realtime
 Usage:
     uv run main.py [--delay-ms DELAY] [--host HOST] [--port PORT]
                    [--auto-clear/--no-auto-clear] [--clear-after SECONDS]
-                   [--fade-out MS] [--smart-sentence]
+                   [--fade-out MS]
     
 Environment Variables:
     MISTRAL_API_KEY: Your Mistral API key (required)
@@ -80,18 +80,7 @@ def parse_args() -> argparse.Namespace:
         default=2.0,
         help="Minimum display time in seconds (default: 2.0)",
     )
-    auto_clear_group.add_argument(
-        "--smart-sentence",
-        action="store_true",
-        default=True,
-        help="Wait longer after sentences end (default: enabled)",
-    )
-    auto_clear_group.add_argument(
-        "--sentence-delay",
-        type=float,
-        default=2.0,
-        help="Extra delay after sentences in seconds (default: 2.0)",
-    )
+
     return parser.parse_args()
 
 
@@ -102,8 +91,7 @@ def create_auto_clear_config(args: argparse.Namespace) -> AutoClearConfig:
         clear_after_seconds=args.clear_after,
         fade_out_duration_ms=args.fade_out,
         min_display_seconds=args.min_display,
-        smart_sentence_delay=args.smart_sentence,
-        sentence_extra_delay=args.sentence_delay,
+
     )
 
 
@@ -144,7 +132,7 @@ async def run_with_transcription(args: argparse.Namespace):
     print(f"   Enabled: {auto_clear_config.enabled}")
     print(f"   Clear after: {auto_clear_config.clear_after_seconds}s")
     print(f"   Fade out: {auto_clear_config.fade_out_duration_ms}ms")
-    print(f"   Smart sentence: {auto_clear_config.smart_sentence_delay}")
+
     print("-" * 60)
     
     # Create transcriber
