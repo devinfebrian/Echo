@@ -6,7 +6,7 @@
 
 ## ✨ What is this?
 
-**Live Caption Studio** turns your speech into real-time captions for OBS/Streamlabs - using state-of-the-art AI transcription from Mistral AI. Your viewers never miss a word, even with audio off. Hard of hearing viewer focused.
+**Echo** turns your speech into real-time captions for OBS/Streamlabs - using state-of-the-art Voxtral Mini Transcribe Realtime from Mistral AI. Your viewers never miss a word, even with audio off. Hard of hearing viewer focused.
 
 ### Why Streamers Love It
 
